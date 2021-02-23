@@ -1,5 +1,3 @@
-import { TransitionPresets } from '@react-navigation/stack'
-
 import { ForgottenPassword } from 'features/auth/forgottenPassword/ForgottenPassword'
 import { ReinitializePassword } from 'features/auth/forgottenPassword/ReinitializePassword'
 import { ResetPasswordEmailSent } from 'features/auth/forgottenPassword/ResetPasswordEmailSent'
@@ -52,7 +50,6 @@ const routes: Array<Route> = [
   {
     name: 'EighteenBirthday',
     component: EighteenBirthday,
-    options: TransitionPresets.SlideFromRightIOS,
   },
   {
     name: 'ForgottenPassword',
@@ -86,7 +83,7 @@ const routes: Array<Route> = [
   { name: 'TabNavigator', component: TabNavigator },
   { name: 'TemporaryProfilePage', component: TemporaryProfilePage },
   { name: 'VerifyEligibility', component: VerifyEligibility },
-  { name: 'FirstTutorial', component: FirstTutorial, options: TransitionPresets.SlideFromRightIOS },
+  { name: 'FirstTutorial', component: FirstTutorial },
   // TODO: PC-6693 remove this line
   { name: 'Calendar', component: Calendar },
 ]
