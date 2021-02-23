@@ -57,7 +57,7 @@ export const useModalContent = (
 
   if (bookingState.step !== Step.CONFIRMATION) {
     return {
-      title: '',
+      title: _(t`Mes options`),
       leftIcon: undefined,
       onLeftIconPress: undefined,
       children: <BookingEventChoices dismissModal={dismissModal} />,
