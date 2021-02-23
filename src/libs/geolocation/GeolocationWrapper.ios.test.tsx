@@ -3,6 +3,7 @@ import { waitFor } from '@testing-library/react-native'
 import React from 'react'
 import { Platform } from 'react-native'
 import Geolocation from 'react-native-geolocation-service'
+import * as permissions from 'react-native-permissions'
 
 import { GeolocationWrapper, GeolocPermissionState, useGeolocation } from 'libs/geolocation'
 
@@ -32,6 +33,7 @@ describe('useGeolocation()', () => {
 
   it('should call onRefusal when requestGeolocPermission returns access is denied', async () => {
     jest.spyOn(Geolocation, 'requestAuthorization').mockResolvedValueOnce('denied')
+    jest.spyOn(permissions, 'check').mockResolvedValueOnce('denied')
     const { result } = renderGeolocationHook()
 
     result.current.requestGeolocPermission({ onSubmit, onAcceptance, onRefusal })
@@ -46,6 +48,7 @@ describe('useGeolocation()', () => {
 
   it('should call onRefusal when requestGeolocPermission returns access is blocked', async () => {
     jest.spyOn(Geolocation, 'requestAuthorization').mockResolvedValueOnce('restricted')
+    jest.spyOn(permissions, 'check').mockResolvedValueOnce('blocked')
     const { result } = renderGeolocationHook()
 
     result.current.requestGeolocPermission({ onSubmit, onAcceptance, onRefusal })

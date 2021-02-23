@@ -16,6 +16,7 @@ import { Banner } from 'ui/components/Banner'
 import { PageHeader } from 'ui/components/headers/PageHeader'
 import { useModal } from 'ui/components/modals/useModal'
 import { getSpacing, Spacer } from 'ui/theme'
+import { storage } from 'libs/storage'
 
 const DEBOUNCED_CALLBACK = 500
 
@@ -36,13 +37,21 @@ export const LocationFilter: React.FC = () => {
   }
 
   const onPressAroundMe = async () => {
-    if (position === null) {
+    const hasAllowedGeolocation = !!(await storage.readObject('has_allowed_geolocation'))
+    if (position === null || !hasAllowedGeolocation) {
       const shouldDisplayCustomGeolocRequest =
         permissionState === GeolocPermissionState.NEVER_ASK_AGAIN
       if (shouldDisplayCustomGeolocRequest) {
         showGeolocPermissionModal()
       } else {
-        await requestGeolocPermission()
+        await requestGeolocPermission({
+          onAcceptance: () => {
+            storage.saveObject('has_allowed_geolocation', true)
+          },
+          onRefusal: () => {
+            storage.saveObject('has_allowed_geolocation', false)
+          }
+        })
         debouncedGoBack()
       }
     } else {

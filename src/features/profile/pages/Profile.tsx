@@ -1,7 +1,7 @@
 import { t } from '@lingui/macro'
 import { useNavigation } from '@react-navigation/native'
-import React, { useRef } from 'react'
-import { StyleSheet } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Linking, StyleSheet } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import styled from 'styled-components/native'
 
@@ -9,11 +9,16 @@ import { useAuthContext, useLogoutRoutine } from 'features/auth/AuthContext'
 import { useUserProfileInfo } from 'features/home/api'
 import { openExternalUrl } from 'features/navigation/helpers'
 import { UseNavigationType } from 'features/navigation/RootNavigator'
+import { GeolocationActivationModal } from 'features/search/components/GeolocationActivationModal'
+import { GeolocPermissionState, useGeolocation } from 'libs/geolocation'
 import { _ } from 'libs/i18n'
+import FilterSwitch from 'ui/components/FilterSwitch'
+import { useModal } from 'ui/components/modals/useModal'
 import { Confidentiality } from 'ui/svg/icons/Confidentiality'
 import { ExternalSite } from 'ui/svg/icons/ExternalSite'
 import { LegalNotices } from 'ui/svg/icons/LegalNotices'
 import { LifeBuoy } from 'ui/svg/icons/LifeBuoy'
+import { LocationPointerNotFilled } from 'ui/svg/icons/LocationPointerNotFilled'
 import { Lock } from 'ui/svg/icons/Lock'
 import { Profile as ProfileIcon } from 'ui/svg/icons/Profile'
 import { SignOut } from 'ui/svg/icons/SignOut'
@@ -26,6 +31,7 @@ import { ProfileHeader } from '../components/ProfileHeader'
 import { ProfileSection } from '../components/ProfileSection'
 import { ProfileContainer } from '../components/reusables'
 import { SectionRow } from '../components/SectionRow'
+import { storage } from 'libs/storage'
 
 export const Profile: React.FC = () => {
   const { navigate } = useNavigation<UseNavigationType>()
@@ -33,6 +39,69 @@ export const Profile: React.FC = () => {
   const { isLoggedIn } = useAuthContext()
   const signOut = useLogoutRoutine()
   const scrollViewRef = useRef<ScrollView | null>(null)
+  const {
+    position,
+    permissionState,
+    requestGeolocPermission,
+    setPosition
+  } = useGeolocation()
+  const [isGeolocSwitchActive, setIsGeolocSwitchActive] = useState<boolean>(false)
+
+
+  function allowGeolocation(hasAllowedGeolocation: boolean) {
+    setIsGeolocSwitchActive(hasAllowedGeolocation)
+    storage.saveObject('has_allowed_geolocation', hasAllowedGeolocation)
+    if(!hasAllowedGeolocation) setPosition(null)
+  }
+
+  useEffect(() => {
+    storage.readObject('has_allowed_geolocation').then((hasAllowedGeolocation) => {
+      if(!!hasAllowedGeolocation && permissionState === GeolocPermissionState.GRANTED) {
+        allowGeolocation(true)
+      } else {
+        allowGeolocation(false)
+      }
+    })
+  }, [permissionState])
+
+  const {
+    visible: isGeolocPermissionModalVisible,
+    showModal: showGeolocPermissionModal,
+    hideModal: hideGeolocPermissionModal,
+  } = useModal(false)
+
+  async function switchGeolocation() {
+    if (isGeolocSwitchActive) {
+      allowGeolocation(false)
+    } else {
+      // FIXME: check storage to define shouldDisplayCustomGeolocRequest
+      const shouldDisplayCustomGeolocRequest =
+        permissionState === GeolocPermissionState.NEVER_ASK_AGAIN ||
+        permissionState === GeolocPermissionState.GRANTED
+      if (shouldDisplayCustomGeolocRequest) {
+        setIsGeolocSwitchActive(true)
+        storage.saveObject('has_allowed_geolocation', true)
+        showGeolocPermissionModal()
+      } else {
+        await requestGeolocPermission({
+          onAcceptance: () => {
+            setIsGeolocSwitchActive(true)
+            storage.saveObject('has_allowed_geolocation', true)
+          },
+          onRefusal: () => {
+            setIsGeolocSwitchActive(false)
+            storage.saveObject('has_allowed_geolocation', false)
+          },
+        })
+      }
+    }
+
+  }
+
+  function onPressGeolocPermissionModalButton() {
+    Linking.openSettings()
+    hideGeolocPermissionModal()
+  }
 
   if (!isLoggedIn) {
     if (scrollViewRef && scrollViewRef.current) {
@@ -67,7 +136,15 @@ export const Profile: React.FC = () => {
               />
             </React.Fragment>
           )}
-          {/* TODO add geolocalisation switch (PC-6858) and  notification row (PC-6177) */}
+          <Spacer.Column numberOfSpaces={4} />
+          <SectionRow
+            type="clickable"
+            title={_(t`Géolocalisation`)}
+            icon={LocationPointerNotFilled}
+            cta={<FilterSwitch active={isGeolocSwitchActive} toggle={switchGeolocation} />}
+          />
+          <Spacer.Column numberOfSpaces={4} />
+          {/* TODO add notification row (PC-6177) */}
         </Section>
         <Section title={_(t`Aides`)}>
           <Row
@@ -135,6 +212,11 @@ export const Profile: React.FC = () => {
           <LogoMinistere />
           <Spacer.Column numberOfSpaces={4} />
         </Section>
+        <GeolocationActivationModal
+          isGeolocPermissionModalVisible={isGeolocPermissionModalVisible}
+          hideGeolocPermissionModal={hideGeolocPermissionModal}
+          onPressGeolocPermissionModalButton={onPressGeolocPermissionModalButton}
+        />
       </ProfileContainer>
       <BottomSpacing />
     </ScrollView>

@@ -9,6 +9,7 @@ import {
   AchievementCardKeyProps,
   GenericAchievementCard,
 } from 'ui/components/achievements/components/GenericAchievementCard'
+import { storage } from 'libs/storage'
 
 export function ThirdCard(props: AchievementCardKeyProps) {
   const { requestGeolocPermission } = useGeolocation()
@@ -19,8 +20,12 @@ export function ThirdCard(props: AchievementCardKeyProps) {
         props.swiperRef?.current?.goToNext()
       },
       onAcceptance: () => {
+        storage.saveObject('has_allowed_geolocation', true)
         analytics.logHasActivateGeolocFromTutorial()
       },
+      onRefusal: () => {
+        storage.saveObject('has_allowed_geolocation', false)
+      }
     })
   }
 
